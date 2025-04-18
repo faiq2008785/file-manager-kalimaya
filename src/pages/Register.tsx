@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -26,21 +25,21 @@ const Register = () => {
       
       if (success) {
         toast({
-          title: "Registrasi berhasil",
-          description: "Selamat datang di Media Vault!",
+          title: "Registration successful",
+          description: "Welcome to Media Vault!",
         });
         navigate("/dashboard");
       } else {
         toast({
-          title: "Registrasi gagal",
-          description: "Silakan periksa informasi Anda dan coba lagi.",
+          title: "Registration failed",
+          description: "Please check your information and try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Kesalahan registrasi",
-        description: "Terjadi kesalahan yang tidak terduga. Silakan coba lagi.",
+        title: "Registration error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -56,9 +55,9 @@ const Register = () => {
       
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold">Buat Akun Pribadi</h1>
+          <h1 className="text-3xl font-bold">Create Personal Account</h1>
           <p className="text-muted-foreground">
-            Mulai kelola file media pribadi Anda
+            Start managing your personal files
           </p>
         </div>
 
@@ -68,7 +67,7 @@ const Register = () => {
             <Input
               id="username"
               type="text"
-              placeholder="nama_pengguna"
+              placeholder="name"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -86,7 +85,7 @@ const Register = () => {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Kata Sandi</Label>
+            <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
@@ -101,7 +100,7 @@ const Register = () => {
             className="w-full"
             disabled={isLoading}
           >
-            {isLoading ? "Membuat akun..." : "Buat Akun"}
+            {isLoading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
       </div>

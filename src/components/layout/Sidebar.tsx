@@ -34,7 +34,7 @@ export function Sidebar() {
           <Link to="/dashboard">
             <div className="flex items-center">
               <HardDrive className="h-6 w-6 mr-2 text-primary" />
-              <h2 className="text-xl font-bold">Media Vault</h2>
+              <h2 className="text-xl font-bold">Kalimaya Storage</h2>
             </div>
           </Link>
         </div>
@@ -90,4 +90,4 @@ export function Sidebar() {
       </div>
     </aside>
   );
-}
+

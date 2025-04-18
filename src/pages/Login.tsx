@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
@@ -71,7 +70,7 @@ const Login = () => {
             <path d="m15 5-1.5-1.5" />
             <path d="M13.5 9.5 9 14" />
           </svg>
-          <span className="font-bold text-lg">Media Vault</span>
+          <span className="font-bold text-lg">Kalimaya Storage</span>
         </Link>
         <ThemeToggle />
       </header>
@@ -137,7 +136,7 @@ const Login = () => {
       </main>
 
       <footer className="border-t py-4 text-center text-sm text-muted-foreground">
-        <p>© 2025 Media Vault. All rights reserved.</p>
+        <p>© 2025 Kalimaya Storage. All rights reserved.</p>
       </footer>
     </div>
   );

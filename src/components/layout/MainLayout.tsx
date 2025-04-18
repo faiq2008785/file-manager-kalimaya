@@ -1,4 +1,3 @@
-
 import { ReactNode } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Navigate } from 'react-router-dom';
@@ -27,7 +26,7 @@ export function MainLayout({ children, requireAuth = true }: MainLayoutProps) {
       <div className="flex-1 flex flex-col">
         {isLoggedIn && (
           <header className="h-16 border-b flex items-center justify-between px-4 bg-background">
-            <h1 className="text-xl font-semibold">Media Vault</h1>
+            <h1 className="text-xl font-semibold">Kalimaya Storage</h1>
             <div className="flex items-center gap-2">
               <ThemeToggle />
               <div className="flex items-center gap-2 ml-4">

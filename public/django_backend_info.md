@@ -1,7 +1,4 @@
-
-# Django Backend Implementation Guide
-
-This file provides guidance on how to implement the Django backend for the Media Vault application.
+# Django Backend Implementation for Kalimaya Storage
 
 ## 1. Database Setup with PostgreSQL
 
@@ -11,7 +8,7 @@ This file provides guidance on how to implement the Django backend for the Media
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'media_vault_db',
+        'NAME': 'kalimaya_storage_db',
         'USER': 'postgres',
         'PASSWORD': 'your_password',
         'HOST': 'db',
@@ -52,19 +49,42 @@ class File(models.Model):
     def generate_thumbnail(self):
         # Logic to generate thumbnail based on file type
         pass
+
+    def get_preview_url(self):
+        if self.type.startswith('application/pdf'):
+            return f'/api/files/{self.id}/pdf-preview/'
+        elif self.type.startswith('application/msword') or \
+             self.type.startswith('application/vnd.openxmlformats-officedocument.wordprocessingml.document'):
+            return f'/api/files/{self.id}/doc-preview/'
+        return None
 ```
 
-## 3. API Endpoints
+## 3. Document Preview API
 
 ```python
 # views.py
-
+from rest_framework import viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.http import HttpResponse
+import fitz  # PyMuPDF for PDF handling
+from docx2pdf import convert  # for Word documents
+import os
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import File, Folder
 from .serializers import FileSerializer, FolderSerializer
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from .models import File, Folder
+from .serializers import FileSerializer, FolderSerializer
+import mimetypes
+from wsgiref.util import FileWrapper
+from django.http import FileResponse, Http404
 
 class FileViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
@@ -103,37 +123,78 @@ class FileViewSet(viewsets.ModelViewSet):
         file_obj = serializer.save(owner=self.request.user)
         file_obj.generate_thumbnail()
 
-class FolderViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
-    serializer_class = FolderSerializer
-    
-    def get_queryset(self):
-        return Folder.objects.filter(owner=self.request.user)
-    
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    @action(detail=True, methods=['get'])
+    def pdf_preview(self, request, pk=None):
+        file_obj = self.get_object()
+        if not file_obj.type.startswith('application/pdf'):
+            return Response({'error': 'Not a PDF file'}, status=400)
+            
+        # Generate preview
+        doc = fitz.open(file_obj.file.path)
+        first_page = doc[0]
+        preview = first_page.get_pixmap()
+        
+        # Convert to image
+        response = HttpResponse(content_type='image/png')
+        preview.save(response, 'png')
+        return response
+
+    @action(detail=True, methods=['get'])
+    def doc_preview(self, request, pk=None):
+        file_obj = self.get_object()
+        if not (file_obj.type.startswith('application/msword') or 
+                file_obj.type.startswith('application/vnd.openxmlformats-officedocument')):
+            return Response({'error': 'Not a Word document'}, status=400)
+            
+        # Convert to PDF first
+        pdf_path = f'/tmp/{file_obj.id}.pdf'
+        convert(file_obj.file.path, pdf_path)
+        
+        # Generate preview from PDF
+        doc = fitz.open(pdf_path)
+        first_page = doc[0]
+        preview = first_page.get_pixmap()
+        
+        # Clean up
+        os.remove(pdf_path)
+        
+        # Return preview
+        response = HttpResponse(content_type='image/png')
+        preview.save(response, 'png')
+        return response
 ```
 
-## 4. Authentication
+## 4. Required Dependencies
+
+```python
+# requirements.txt
+
+Django==5.0.0
+djangorestframework==3.14.0
+psycopg2-binary==2.9.9
+PyMuPDF==1.23.7  # for PDF handling
+python-docx==1.0.1  # for Word documents
+docx2pdf==0.1.8  # for Word to PDF conversion
+Pillow==10.1.0  # for image handling
+gunicorn==21.2.0
+django-cors-headers==4.3.1
+python-magic==0.4.27  # for file type detection
+```
+
+## 5. CORS Configuration
 
 ```python
 # settings.py
 
-INSTALLED_APPS = [
-    # ... other apps
-    'rest_framework',
-    'rest_framework.authtoken',
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite dev server
+    "http://localhost:3000",
 ]
 
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-}
+CORS_ALLOW_CREDENTIALS = True
 ```
 
-## 5. Media Handling
+## 6. Media File Handling
 
 ```python
 # settings.py
@@ -141,178 +202,49 @@ REST_FRAMEWORK = {
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+FILE_UPLOAD_HANDLERS = [
+    'django.core.files.uploadhandler.MemoryFileUploadHandler',
+    'django.core.files.uploadhandler.TemporaryFileUploadHandler',
+]
+
 # For handling large file uploads
 DATA_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 FILE_UPLOAD_MAX_MEMORY_SIZE = 104857600  # 100 MB
 ```
 
-## 6. Dockerfile
-
-```dockerfile
-FROM python:3.10-slim as base
-
-# Setup env
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONFAULTHANDLER 1
-ENV PYTHONUNBUFFERED 1
-
-FROM base AS python-deps
-
-# Install pipenv and compilation dependencies
-RUN pip install pipenv
-RUN apt-get update && apt-get install -y --no-install-recommends gcc
-
-# Install python dependencies in /.venv
-COPY Pipfile .
-COPY Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
-
-FROM base AS runtime
-
-# Copy virtual env from python-deps stage
-COPY --from=python-deps /.venv /.venv
-ENV PATH="/.venv/bin:$PATH"
-
-# Create and switch to a new user
-RUN useradd --create-home appuser
-WORKDIR /home/appuser
-USER appuser
-
-# Install application into container
-COPY . .
-
-# Run the application
-ENTRYPOINT ["gunicorn", "mediavault.wsgi:application", "--bind", "0.0.0.0:8000"]
-```
-
-## 7. Kubernetes Configuration
-
-### Deployment
-
-```yaml
-# deployment.yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mediavault
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mediavault
-  template:
-    metadata:
-      labels:
-        app: mediavault
-    spec:
-      containers:
-      - name: mediavault
-        image: mediavault:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: mediavault-secrets
-              key: database_url
-        volumeMounts:
-        - name: mediavault-data
-          mountPath: /home/appuser/media
-      volumes:
-      - name: mediavault-data
-        persistentVolumeClaim:
-          claimName: mediavault-pvc
-```
-
-### Persistent Volume
-
-```yaml
-# pv.yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: mediavault-pv
-  labels:
-    type: local
-spec:
-  storageClassName: manual
-  capacity:
-    storage: 10Gi
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: "/mnt/data"
-```
-
-### Persistent Volume Claim
-
-```yaml
-# pvc.yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: mediavault-pvc
-spec:
-  storageClassName: manual
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 5Gi
-```
-
-### Service
-
-```yaml
-# service.yaml
-apiVersion: v1
-kind: Service
-metadata:
-  name: mediavault-service
-spec:
-  selector:
-    app: mediavault
-  ports:
-  - port: 80
-    targetPort: 8000
-  type: LoadBalancer
-```
-
-## 8. Multi-platform Docker Build
-
-```bash
-# Build for multiple platforms
-docker buildx create --name mybuilder --use
-docker buildx build --platform linux/amd64,linux/arm64 -t username/mediavault:latest --push .
-```
-
-## 9. Video and Music Playback
-
-Django would serve the media files, and the frontend would handle the playback with HTML5 video and audio elements. For streaming:
+## 7. Authentication
 
 ```python
-# views.py
-from django.http import FileResponse, Http404
-from wsgiref.util import FileWrapper
-import os, mimetypes
+# settings.py
 
-@action(detail=True, methods=['get'])
-def stream(self, request, pk=None):
-    file_obj = self.get_object()
-    file_path = file_obj.file.path
-    
-    content_type, encoding = mimetypes.guess_type(file_path)
-    if content_type is None:
-        content_type = 'application/octet-stream'
-        
-    response = FileResponse(
-        FileWrapper(open(file_path, 'rb')),
-        content_type=content_type
-    )
-    
-    response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
-    return response
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+}
+
+# For token authentication
+INSTALLED_APPS += ['rest_framework.authtoken']
+```
+
+## 8. Document Preview Templates
+
+```python
+# templates/preview/document.html
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="document-viewer">
+    {% if file.type == 'application/pdf' %}
+        <embed src="{{ file.file.url }}" type="application/pdf" width="100%" height="600px">
+    {% else %}
+        <img src="{% url 'file-preview' file.id %}" alt="Document Preview">
+    {% endif %}
+</div>
+{% endblock %}
 ```
