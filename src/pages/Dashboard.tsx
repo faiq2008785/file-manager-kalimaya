@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
@@ -200,7 +199,8 @@ const Dashboard = () => {
         
         {displayedFiles.length > 0 ? (
           <FileGrid 
-            files={displayedFiles} 
+            files={displayedFiles}
+            viewMode={viewMode} 
             onDelete={handleDeleteFile}
             onRename={handleRenameFile}
             onToggleFavorite={handleToggleFavorite}
