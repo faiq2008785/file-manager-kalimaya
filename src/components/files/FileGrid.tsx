@@ -1,6 +1,7 @@
+
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { File, FileType } from "@/types/files";
+import { File } from "@/types/files";
 import { FileCard } from "./FileCard";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -26,6 +27,12 @@ import {
   Trash2, 
   Share, 
   MoreVertical,
+  FileIcon,
+  ImageIcon,
+  VideoIcon,
+  AudioLines,
+  FileText,
+  FileArchive
 } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 
@@ -39,7 +46,22 @@ interface FileGridProps {
 
 export function FileGrid({ files, viewMode = "grid", onDelete, onRename, onToggleFavorite }: FileGridProps) {
   const { toast } = useToast();
-  const [contextMenuFile, setContextMenuFile] = useState<File | null>(null);
+
+  const getFileIcon = (type: string) => {
+    if (type.startsWith("image/")) {
+      return <ImageIcon className="h-4 w-4 mr-2" />;
+    } else if (type.startsWith("video/")) {
+      return <VideoIcon className="h-4 w-4 mr-2" />;
+    } else if (type.startsWith("audio/")) {
+      return <AudioLines className="h-4 w-4 mr-2" />;
+    } else if (type.startsWith("text/") || type.includes("document")) {
+      return <FileText className="h-4 w-4 mr-2" />;
+    } else if (type.includes("zip") || type.includes("archive")) {
+      return <FileArchive className="h-4 w-4 mr-2" />;
+    } else {
+      return <FileIcon className="h-4 w-4 mr-2" />;
+    }
+  };
 
   const handleDelete = (id: number) => {
     if (onDelete) {
@@ -114,8 +136,7 @@ export function FileGrid({ files, viewMode = "grid", onDelete, onRename, onToggl
             <TableRow key={file.id}>
               <TableCell className="font-medium">
                 <Link to={`/file/${file.id}`} className="flex items-center">
-                  {/* @ts-expect-error */}
-                  <file.icon className="h-4 w-4 mr-2" />
+                  {getFileIcon(file.type)}
                   {file.name}
                 </Link>
               </TableCell>
