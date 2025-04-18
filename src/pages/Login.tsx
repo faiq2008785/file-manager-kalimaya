@@ -80,7 +80,7 @@ const Login = () => {
           <div className="text-center space-y-2">
             <h1 className="text-3xl font-bold">Welcome back</h1>
             <p className="text-muted-foreground">
-              Sign in to access your files and media
+              Sign in to access your files and storage
             </p>
           </div>
 

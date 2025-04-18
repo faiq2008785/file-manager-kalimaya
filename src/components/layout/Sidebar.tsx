@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "react-router-dom";
@@ -26,6 +25,14 @@ export function Sidebar() {
     { name: "Documents", href: "/dashboard?type=document", icon: FileText },
     { name: "Favorites", href: "/dashboard?favorite=true", icon: Star },
   ];
+
+  // Get storage info from localStorage or default values
+  const storageInfo = {
+    total: localStorage.getItem('pvcStorageTotal') || "10",
+    used: localStorage.getItem('pvcStorageUsed') || "4.5"
+  };
+
+  const usedPercentage = (Number(storageInfo.used) / Number(storageInfo.total)) * 100;
 
   return (
     <aside className="w-full md:w-64 border-r bg-background">
@@ -76,13 +83,18 @@ export function Sidebar() {
                 <HardDrive className="h-5 w-5 text-muted-foreground" />
               </div>
               <div className="ml-3">
-                <p className="text-sm font-medium">Storage</p>
+                <p className="text-sm font-medium">Storage (PVC)</p>
                 <div className="mt-1">
                   <div className="h-2 bg-secondary/30 rounded">
-                    <div className="h-2 bg-secondary rounded" style={{ width: "45%" }} />
+                    <div 
+                      className="h-2 bg-secondary rounded" 
+                      style={{ width: `${usedPercentage}%` }} 
+                    />
                   </div>
                 </div>
-                <p className="mt-1 text-xs text-muted-foreground">4.5 GB used of 10 GB</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {storageInfo.used} GB used of {storageInfo.total} GB
+                </p>
               </div>
             </div>
           </div>

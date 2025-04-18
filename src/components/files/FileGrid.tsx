@@ -1,8 +1,16 @@
-
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { File, FileType } from "@/types/files";
 import { FileCard } from "./FileCard";
+import { formatDistanceToNow } from "date-fns";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import { 
   DropdownMenu,
   DropdownMenuContent, 
@@ -23,12 +31,13 @@ import { useToast } from "@/components/ui/use-toast";
 
 interface FileGridProps {
   files: File[];
+  viewMode: "grid" | "list";
   onDelete?: (id: number) => void;
   onRename?: (id: number, newName: string) => void;
   onToggleFavorite?: (id: number) => void;
 }
 
-export function FileGrid({ files, onDelete, onRename, onToggleFavorite }: FileGridProps) {
+export function FileGrid({ files, viewMode = "grid", onDelete, onRename, onToggleFavorite }: FileGridProps) {
   const { toast } = useToast();
   const [contextMenuFile, setContextMenuFile] = useState<File | null>(null);
 
@@ -89,8 +98,73 @@ export function FileGrid({ files, onDelete, onRename, onToggleFavorite }: FileGr
     });
   };
 
+  if (viewMode === "list") {
+    return (
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Size</TableHead>
+            <TableHead>Last Modified</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {files.map((file) => (
+            <TableRow key={file.id}>
+              <TableCell className="font-medium">
+                <Link to={`/file/${file.id}`} className="flex items-center">
+                  {/* @ts-expect-error */}
+                  <file.icon className="h-4 w-4 mr-2" />
+                  {file.name}
+                </Link>
+              </TableCell>
+              <TableCell>{formatBytes(file.size)}</TableCell>
+              <TableCell>{formatDistanceToNow(new Date(file.updated_at), { addSuffix: true })}</TableCell>
+              <TableCell className="text-right">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleDownload(file)}>
+                      <Download className="mr-2 h-4 w-4" />
+                      <span>Download</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleRename(file.id)}>
+                      <Pencil className="mr-2 h-4 w-4" />
+                      <span>Rename</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleToggleFavorite(file.id)}>
+                      <Star className="mr-2 h-4 w-4" fill={file.is_favorite ? "currentColor" : "none"} />
+                      <span>{file.is_favorite ? "Remove from favorites" : "Add to favorites"}</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleShare(file)}>
+                      <Share className="mr-2 h-4 w-4" />
+                      <span>Share</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                      className="text-destructive focus:text-destructive" 
+                      onClick={() => handleDelete(file.id)}
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      <span>Delete</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    );
+  }
+
   return (
-    <div className="file-grid">
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {files.map((file) => (
         <div key={file.id} className="relative group">
           <Link to={`/file/${file.id}`} className="block">
@@ -136,4 +210,12 @@ export function FileGrid({ files, onDelete, onRename, onToggleFavorite }: FileGr
       ))}
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 Bytes';
+  const k = 1024;
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
