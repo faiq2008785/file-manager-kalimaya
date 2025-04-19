@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +8,11 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { ThemeToggle } from "@/components/theme/theme-toggle";
 
-const Login = () => {
+const ForgotPassword = () => {
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const { forgotPassword } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,24 +20,24 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password);
+      const success = await forgotPassword(email);
       
       if (success) {
+        setIsSubmitted(true);
         toast({
-          title: "Login successful",
-          description: "Welcome back to Kalimaya Storage!",
+          title: "Reset link sent",
+          description: "If an account with this email exists, a password reset link has been sent.",
         });
-        navigate("/dashboard");
       } else {
         toast({
-          title: "Login failed",
-          description: "Please check your credentials and try again.",
+          title: "Failed to send reset link",
+          description: "There was a problem sending the password reset link. Please try again.",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Login error",
+        title: "Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
       });
@@ -79,60 +78,50 @@ const Login = () => {
       <main className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Welcome back</h1>
+            <h1 className="text-3xl font-bold">Forgot Password</h1>
             <p className="text-muted-foreground">
-              Sign in to access your files and storage
+              Enter your email address and we'll send you a link to reset your password
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <Link
-                  to="/forgot-password"
-                  className="text-sm text-primary hover:underline"
-                >
-                  Forgot password?
+          {!isSubmitted ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading}
+              >
+                {isLoading ? "Sending..." : "Send Reset Link"}
+              </Button>
+              
+              <div className="text-center mt-4">
+                <Link to="/login" className="text-sm text-primary hover:underline">
+                  Back to login
                 </Link>
               </div>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
+            </form>
+          ) : (
+            <div className="bg-muted p-6 rounded-lg text-center space-y-4">
+              <h3 className="text-lg font-medium">Reset Link Sent</h3>
+              <p>
+                If an account exists with the email {email}, you will receive a password reset link shortly.
+              </p>
+              <Button asChild variant="outline" className="mt-4">
+                <Link to="/login">Return to Login</Link>
+              </Button>
             </div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-          </form>
-
-          <div className="text-center">
-            <p className="text-sm text-muted-foreground">
-              Don't have an account?{" "}
-              <Link to="/register" className="text-primary hover:underline">
-                Sign up
-              </Link>
-            </p>
-          </div>
+          )}
         </div>
       </main>
 
@@ -143,4 +132,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default ForgotPassword;
