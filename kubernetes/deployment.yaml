@@ -20,6 +20,9 @@ spec:
         image: ${YOUR_DOCKER_REGISTRY}/kalimaya-storage:latest
         ports:
         - containerPort: 80
+        volumeMounts:
+        - name: kalimaya-storage-data
+          mountPath: /usr/share/nginx/html
         resources:
           limits:
             cpu: "0.5"
@@ -39,3 +42,7 @@ spec:
             port: 80
           initialDelaySeconds: 5
           periodSeconds: 5
+      volumes:
+      - name: kalimaya-storage-data
+        persistentVolumeClaim:
+          claimName: kalimaya-storage-pvc
