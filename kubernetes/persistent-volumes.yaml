@@ -3,6 +3,8 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: kalimaya-storage-pv
+  labels:
+    type: local
 spec:
   capacity:
     storage: 10Gi
@@ -17,6 +19,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: kalimaya-storage-pvc
+  namespace: default
 spec:
   accessModes:
     - ReadWriteMany
